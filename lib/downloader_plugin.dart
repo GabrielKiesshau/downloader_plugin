@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'base_downloader.dart';
 import 'enums/shared_storage.dart';
 import 'models/download_task.dart';
@@ -14,6 +16,8 @@ class DownloaderPlugin {
   /// Stream of [TaskUpdate] updates for downloads that do
   /// not have a registered callback
   Stream<TaskUpdate> get updates => _downloader.updates.stream;
+  
+  StreamController<TaskUpdate> get updatesController => _downloader.updates;
 
   /// Start a new task
   ///
