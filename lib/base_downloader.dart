@@ -1,0 +1,480 @@
+import 'dart:async';
+import 'dart:developer' as dev;
+import 'dart:io';
+import 'dart:math';
+
+import 'package:downloader_plugin/database.dart';
+import 'package:flutter/foundation.dart';
+import 'package:collection/collection.dart';
+import 'package:localstore/localstore.dart';
+
+import 'enums/shared_storage.dart';
+import 'enums/task_status.dart';
+import 'enums/undelivered.dart';
+import 'models/download_task.dart';
+import 'models/resume_data.dart';
+import 'models/task.dart';
+import 'models/task_notification_config.dart';
+import 'models/task_progress_callback.dart';
+import 'models/task_progress_update.dart';
+import 'models/task_status_callback.dart';
+import 'models/task_status_update.dart';
+import 'models/task_update.dart';
+import 'native_downloader.dart';
+
+/// Common download functionality
+///
+/// The common functionality mostly relates to:
+/// - callback handling (for groups of tasks registered via the [DownloaderPlugin])
+/// - tasks waiting to retry and retry handling
+/// - Task updates provided to the [DownloaderPlugin]
+/// - Pause/resume status and information
+abstract class BaseDownloader {
+  static const resumeDataPath = 'backgroundDownloaderResumeData';
+  static const pausedTasksPath = 'backgroundDownloaderPausedTasks';
+
+  /// Persistent storage
+  final _db = Localstore.instance;
+
+  final tasksWaitingToRetry = <Task>[];
+
+  /// Registered [TaskStatusCallback] for each group
+  final groupStatusCallbacks = <String, TaskStatusCallback>{};
+
+  /// Registered [TaskProgressCallback] for each group
+  final groupProgressCallbacks = <String, TaskProgressCallback>{};
+
+  /// StreamController for [TaskUpdate] updates
+  var updates = StreamController<TaskUpdate>();
+
+  /// Groups tracked in persistent database
+  final trackedGroups = <String>{};
+
+  /// Map of tasks and completer to indicate whether task can be resumed
+  final canResumeTask = <Task, Completer<bool>>{};
+
+  // /// Flag indicating we have retrieved missed data
+  // var _retrievedLocallyStoredData = false;
+
+  BaseDownloader();
+
+  factory BaseDownloader.instance() {
+    final instance = NativeDownloader();
+    unawaited(instance.initialize());
+    return instance;
+  }
+
+  /// Initialize
+  Future<void> initialize();
+
+  // /// Retrieve data that was stored locally because it could not be
+  // /// delivered to the downloader
+  // Future<void> retrieveLocallyStoredData() async {
+  //   if (!_retrievedLocallyStoredData) {
+  //     final resumeDataMap = await popUndeliveredData(Undelivered.resumeData);
+  //     for (var taskId in resumeDataMap.keys) {
+  //       // map is <taskId, ResumeData>
+  //       final resumeData = ResumeData.fromJsonMap(resumeDataMap[taskId]);
+  //       await setResumeData(resumeData);
+  //       await setPausedTask(resumeData.task);
+  //     }
+  //     final statusUpdateMap = await popUndeliveredData(Undelivered.statusUpdates);
+  //     for (var taskId in statusUpdateMap.keys) {
+  //       // map is <taskId, Task/TaskStatus> where TaskStatus is added to Task JSON
+  //       final payload = statusUpdateMap[taskId];
+  //       final task = Task.createFromJsonMap(payload);
+  //       final taskStatus = TaskStatus.values[payload['taskStatus']];
+  //       processStatusUpdate(task, taskStatus);
+  //     }
+  //     final progressUpdateMap = await popUndeliveredData(Undelivered.progressUpdates);
+  //     for (var taskId in progressUpdateMap.keys) {
+  //       // map is <taskId, Task/progress> where progress is added to Task JSON
+  //       final payload = progressUpdateMap[taskId];
+  //       final task = Task.createFromJsonMap(payload);
+  //       final progress = payload['progress'];
+  //       processProgressUpdate(task, progress);
+  //     }
+  //     _retrievedLocallyStoredData = true;
+  //   }
+  // }
+
+  /// Enqueue the task
+  @mustCallSuper
+  Future<bool> enqueue(Task task, [TaskNotificationConfig? notificationConfig]) async {
+    dev.log('enqueue()', name: 'BaseDownloader');
+    // if (task.allowPause) {
+    //   canResumeTask[task] = Completer();
+    // }
+    return true;
+  }
+
+  // /// Resets the download worker by cancelling all ongoing tasks for the group
+  // ///
+  // ///  Returns the number of tasks canceled
+  // @mustCallSuper
+  // Future<int> reset(String group) async {
+  //   final retryCount = tasksWaitingToRetry.where((task) => task.group == group).length;
+  //   tasksWaitingToRetry.removeWhere((task) => task.group == group);
+  //   final pausedTasks = await getPausedTasks();
+  //   var pausedCount = 0;
+  //   for (var task in pausedTasks) {
+  //     if (task.group == group) {
+  //       removePausedTask(task.taskId);
+  //       pausedCount++;
+  //     }
+  //   }
+  //   return retryCount + pausedCount;
+  // }
+
+  // /// Returns a list of all tasks in progress, matching [group]
+  // @mustCallSuper
+  // Future<List<Task>> allTasks(String group, bool includeTasksWaitingToRetry) async {
+  //   final tasks = <Task>[];
+  //   if (includeTasksWaitingToRetry) {
+  //     tasks.addAll(tasksWaitingToRetry.where((task) => task.group == group));
+  //   }
+  //   final pausedTasks = await getPausedTasks();
+  //   tasks.addAll(pausedTasks.where((task) => task.group == group));
+  //   return tasks;
+  // }
+
+  // /// Cancels ongoing tasks whose taskId is in the list provided with this call
+  // ///
+  // /// Returns true if all cancellations were successful
+  // @mustCallSuper
+  // Future<bool> cancelTasksWithIds(List<String> taskIds) async {
+  //   final matchingTasksWaitingToRetry = tasksWaitingToRetry.where((task) => taskIds.contains(task.taskId)).toList(growable: false);
+  //   final matchingTaskIdsWaitingToRetry = matchingTasksWaitingToRetry.map((task) => task.taskId).toList(growable: false);
+  //   // remove tasks waiting to retry from the list so they won't be retried
+  //   for (final task in matchingTasksWaitingToRetry) {
+  //     tasksWaitingToRetry.remove(task);
+  //     _emitStatusUpdate(task, TaskStatus.canceled);
+  //     _emitProgressUpdate(task, progressCanceled);
+  //   }
+  //   final remainingTaskIds = taskIds.where((taskId) => !matchingTaskIdsWaitingToRetry.contains(taskId));
+  //   // cancel paused tasks
+  //   final pausedTasks = await getPausedTasks();
+  //   final pausedTaskIdsToCancel = pausedTasks.where((task) => remainingTaskIds.contains(task.taskId)).map((e) => e.taskId).toList(growable: false);
+  //   cancelPausedPlatformTasksWithIds(pausedTasks, pausedTaskIdsToCancel);
+  //   // cancel remaining taskIds on the platform
+  //   final platformTaskIds = remainingTaskIds.where((taskId) => !pausedTaskIdsToCancel.contains(taskId)).toList(growable: false);
+  //   if (platformTaskIds.isEmpty) {
+  //     return true;
+  //   }
+  //   return cancelPlatformTasksWithIds(platformTaskIds);
+  // }
+
+  // /// Cancel these tasks on the platform
+  // Future<bool> cancelPlatformTasksWithIds(List<String> taskIds);
+
+  // /// Cancel paused tasks
+  // ///
+  // /// Deletes the associated temp file and emits [TaskStatus.cancel]
+  // void cancelPausedPlatformTasksWithIds(List<Task> pausedTasks, List<String> taskIds) async {
+  //   for (final taskId in taskIds) {
+  //     final task = pausedTasks.firstWhereOrNull((element) => element.taskId == taskId);
+  //     if (task != null) {
+  //       final resumeData = await getResumeData(task.taskId);
+  //       if (!Platform.isIOS && resumeData != null) {
+  //         // on non-iOS, data[0] is the tempFilePath, and that file must be
+  //         // deleted
+  //         final tempFilePath = resumeData.data;
+  //         try {
+  //           await File(tempFilePath).delete();
+  //         } on FileSystemException {
+  //           debugPrint('Could not delete temp file $tempFilePath');
+  //         }
+  //       }
+  //       processStatusUpdate(task, TaskStatus.canceled);
+  //     }
+  //   }
+  // }
+
+  // /// Returns Task for this taskId, or nil
+  // @mustCallSuper
+  // Future<Task?> taskForId(String taskId) async {
+  //   try {
+  //     return tasksWaitingToRetry.where((task) => task.taskId == taskId).first;
+  //   } on StateError {
+  //     try {
+  //       final pausedTasks = await getPausedTasks();
+  //       return pausedTasks.where((task) => task.taskId == taskId).first;
+  //     } on StateError {
+  //       return null;
+  //     }
+  //   }
+  // }
+
+  // /// Activate tracking for tasks in this group
+  // ///
+  // /// All subsequent tasks in this group will be recorded in persistent storage
+  // /// and can be queried with methods that include 'tracked', e.g.
+  // /// [allTrackedTasks]
+  // ///
+  // /// If [markDownloadedComplete] is true (default) then all tasks that are
+  // /// marked as not yet [TaskStatus.complete] will be set to complete if the
+  // /// target file for that task exists, and will emit [TaskStatus.complete]
+  // /// and [progressComplete] to their registered listener or callback.
+  // /// This is a convenient way to capture downloads that have completed while
+  // /// the app was suspended, provided you have registered your listeners
+  // /// or callback before calling this.
+  // Future<void> trackTasks(String group, bool markDownloadedComplete) async {
+  //   trackedGroups.add(group);
+  //   if (markDownloadedComplete) {
+  //     final records = await Database().allRecords(group: group);
+  //     for (var record in records.where((record) => record.task is DownloadTask && record.taskStatus != TaskStatus.complete)) {
+  //       final filePath = await record.task.filePath();
+  //       if (await File(filePath).exists()) {
+  //         processStatusUpdate(record.task, record.taskStatus);
+  //         final updatedRecord = record.copyWith(taskStatus: TaskStatus.complete, progress: progressComplete);
+  //         await Database().updateRecord(updatedRecord);
+  //       }
+  //     }
+  //   }
+  // }
+
+  // Future<bool> pause(Task task);
+
+  // /// Attempt to resume this [task]
+  // ///
+  // /// Returns true if successful
+  // @mustCallSuper
+  // Future<bool> resume(Task task, [TaskNotificationConfig? notificationConfig]) async {
+  //   await removePausedTask(task.taskId);
+  //   if (await getResumeData(task.taskId) != null) {
+  //     canResumeTask[task] = Completer();
+  //     return true;
+  //   }
+  //   return false;
+  // }
+
+  // /// Sets the 'canResumeTask' flag for this task
+  // ///
+  // /// Completes the completer already associated with this task
+  // void setCanResume(Task task, bool canResume) {
+  //   if (canResumeTask[task]?.isCompleted == false) {
+  //     canResumeTask[task]?.complete(canResume);
+  //   }
+  // }
+
+  // /// Returns a Future that indicates whether this task can be resumed
+  // Future<bool> taskCanResume(Task task) => canResumeTask[task]?.future ?? Future.value(false);
+
+  // /// Stores the resume data
+  // Future<void> setResumeData(ResumeData resumeData) => _db.collection(resumeDataPath).doc(_safeId(resumeData.taskId)).set(resumeData.toJsonMap());
+
+  // /// Retrieve the resume data for this [taskId]
+  // Future<ResumeData?> getResumeData(String taskId) async {
+  //   final jsonMap = await _db.collection(resumeDataPath).doc(_safeId(taskId)).get();
+  //   return jsonMap == null ? null : ResumeData.fromJsonMap(jsonMap);
+  // }
+
+  /// Remove resumeData for this taskId, or all if null
+  Future<void> removeResumeData([String? taskId]) async {
+    if (taskId == null) {
+      await _db.collection(resumeDataPath).delete();
+    }
+    await _db.collection(resumeDataPath).doc(taskId).delete();
+  }
+
+  /// Store the paused task
+  Future<void> setPausedTask(Task task) => _db.collection(pausedTasksPath).doc(_safeId(task.taskId)).set(task.toJsonMap());
+
+  // /// Return a stored paused task, or null if not found
+  // Future<Task?> getPausedTask(String taskId) async {
+  //   final jsonMap = await _db.collection(pausedTasksPath).doc(_safeId(taskId)).get();
+  //   return jsonMap == null ? null : Task.createFromJsonMap(jsonMap);
+  // }
+
+  // Future<List<Task>> getPausedTasks() async {
+  //   final jsonMap = await _db.collection(pausedTasksPath).get();
+  //   if (jsonMap == null) {
+  //     return [];
+  //   }
+  //   return jsonMap.values.map((e) => Task.createFromJsonMap(e)).toList();
+  // }
+
+  /// Remove paused task for this taskId, or all if null
+  Future<void> removePausedTask([String? taskId]) async {
+    if (taskId == null) {
+      await _db.collection(pausedTasksPath).delete();
+    }
+    await _db.collection(pausedTasksPath).doc(taskId).delete();
+  }
+
+  // /// Retrieve data that was not delivered to Dart
+  // Future<Map<String, dynamic>> popUndeliveredData(Undelivered dataType);
+
+  /// Clear pause and resume info associated with this task
+  void _clearPauseResumeInfo(Task task) {
+    canResumeTask.remove(task);
+    removeResumeData(task.taskId);
+    removePausedTask(task.taskId);
+  }
+
+  // /// Get the duration for a task to timeout - Android only, for testing
+  // @visibleForTesting
+  // Future<Duration> getTaskTimeout();
+
+  // /// Set forceFailPostOnBackgroundChannel for native downloader
+  // @visibleForTesting
+  // Future<void> setForceFailPostOnBackgroundChannel(bool value);
+
+  /// Android-only: Move the file at [filePath] to the shared storage
+  /// [destination] and potential subdirectory [directory]
+  ///
+  /// Returns the path to the file in shared storage, or null
+  Future<String?> moveToSharedStorage(String filePath, SharedStorage destination, String directory, String? mimeType) {
+    return Future.value(null);
+  }
+
+  /// Destroy - clears callbacks, updates stream and retry queue
+  ///
+  /// Clears all queues and references without sending cancellation
+  /// messages or status updates
+  @mustCallSuper
+  void destroy() {
+    // tasksWaitingToRetry.clear();
+    groupStatusCallbacks.clear();
+    groupProgressCallbacks.clear();
+    // trackedGroups.clear();
+    // canResumeTask.clear();
+    // removeResumeData(); // removes all
+  //   removePausedTask(); // removes all
+    updates.close();
+    updates = StreamController();
+  }
+
+  /// Process status update coming from Downloader and emits to listener
+  ///
+  /// Also manages retries ([tasksWaitingToRetry] and delay) and pause/resume
+  /// ([pausedTasks] and [_clearPauseResumeInfo]
+  void processStatusUpdate(Task task, TaskStatus taskStatus) {
+    // Normal status updates are only sent here when the task is expected
+    // to provide those.  The exception is a .failed status when a task
+    // has retriesRemaining > 0: those are always sent here, and are
+    // intercepted to hold the task and reschedule in the near future
+    if (taskStatus == TaskStatus.failed && task.retriesRemaining > 0) {
+      _emitStatusUpdate(task, TaskStatus.waitingToRetry);
+      _emitProgressUpdate(task, Task.progressWaitingToRetry);
+      task.decreaseRetriesRemaining();
+      tasksWaitingToRetry.add(task);
+      final waitTime = Duration(seconds: pow(2, (task.retries - task.retriesRemaining)).toInt());
+      debugPrint('TaskId ${task.taskId} failed, waiting ${waitTime.inSeconds}'
+          ' seconds before retrying. ${task.retriesRemaining}'
+          ' retries remaining');
+      Future.delayed(waitTime, () async {
+        // after delay, enqueue task again if it's still waiting
+        if (tasksWaitingToRetry.remove(task)) {
+          if (!await enqueue(task)) {
+            debugPrint('Could not enqueue task $task after retry timeout');
+            _clearPauseResumeInfo(task);
+            _emitStatusUpdate(task, TaskStatus.failed);
+            _emitProgressUpdate(task, Task.progressFailed);
+          }
+        }
+      });
+    } else {
+      // normal status update
+      if (taskStatus == TaskStatus.paused) {
+        setPausedTask(task);
+      }
+      if (taskStatus.isFinalState) {
+        _clearPauseResumeInfo(task);
+      }
+      _emitStatusUpdate(task, taskStatus);
+    }
+  }
+
+  /// Process progress update coming from Downloader to client listener
+  void processProgressUpdate(Task task, double progress) {
+    _emitProgressUpdate(task, progress);
+  }
+
+  /// Emits the status update for this task to its callback or listener, and
+  /// update the task in the database
+  void _emitStatusUpdate(Task task, TaskStatus taskStatus) {
+    _updateTaskInDatabase(task, status: taskStatus);
+    if (task.providesStatusUpdates) {
+      final taskStatusCallback = groupStatusCallbacks[task.group];
+      if (taskStatusCallback != null) {
+        taskStatusCallback(task, taskStatus);
+      } else {
+        if (updates.hasListener) {
+          updates.add(TaskStatusUpdate(task, taskStatus));
+        } else {
+          debugPrint('Requested status updates for task ${task.taskId} in '
+              'group ${task.group} but no TaskStatusCallback '
+              'was registered, and there is no listener to the '
+              'updates stream');
+        }
+      }
+    }
+  }
+
+  /// Emit the progress update for this task to its callback or listener, and
+  /// update the task in the database
+  void _emitProgressUpdate(Task task, progress) {
+    _updateTaskInDatabase(task, progress: progress);
+    if (task.providesProgressUpdates) {
+      final taskProgressCallback = groupProgressCallbacks[task.group];
+      if (taskProgressCallback != null) {
+        taskProgressCallback(task, progress);
+      } else if (updates.hasListener) {
+        updates.add(TaskProgressUpdate(task, progress));
+      } else {
+        debugPrint('Requested progress updates for task ${task.taskId} in '
+            'group ${task.group} but no TaskProgressCallback '
+            'was registered, and there is no listener to the '
+            'updates stream');
+      }
+    }
+  }
+
+  /// Insert or update the [TaskRecord] in the tracking database
+  Future<void> _updateTaskInDatabase(Task task, {TaskStatus? status, double? progress}) async {
+    if (trackedGroups.contains(task.group)) {
+      if (status == null && progress != null) {
+        // update existing record with progress only
+        final existingRecord = await Database().recordForId(task.taskId);
+        if (existingRecord != null) {
+          Database().updateRecord(existingRecord.copyWith(progress: progress));
+        }
+        return;
+      }
+      if (progress == null && status != null) {
+        // set progress based on status
+        switch (status) {
+          case TaskStatus.enqueued:
+          case TaskStatus.running:
+            progress = 0.0;
+            break;
+          case TaskStatus.complete:
+            progress = Task.progressComplete;
+            break;
+          case TaskStatus.notFound:
+            progress = Task.progressNotFound;
+            break;
+          case TaskStatus.failed:
+            progress = Task.progressFailed;
+            break;
+          case TaskStatus.canceled:
+            progress = Task.progressCanceled;
+            break;
+          case TaskStatus.waitingToRetry:
+            progress = Task.progressWaitingToRetry;
+            break;
+          case TaskStatus.paused:
+            progress = Task.progressPaused;
+            break;
+        }
+      }
+      Database().updateRecord(TaskRecord(task, status!, progress!));
+    }
+  }
+
+  final _illegalPathCharacters = RegExp(r'[\\/:*?"<>|]');
+
+  /// Make the id safe for storing in the localStore
+  String _safeId(String id) => id.replaceAll(_illegalPathCharacters, '_');
+}
