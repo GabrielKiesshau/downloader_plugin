@@ -16,8 +16,6 @@ class DownloaderPlugin {
   /// Stream of [TaskUpdate] updates for downloads that do
   /// not have a registered callback
   Stream<TaskUpdate> get updates => _downloader.updates.stream;
-  
-  StreamController<TaskUpdate> get updatesController => _downloader.updates;
 
   /// Start a new task
   ///
@@ -133,4 +131,16 @@ class DownloaderPlugin {
     String? mimeType,
   }) async =>
       _downloader.moveToSharedStorage(filePath, destination, directory, mimeType);
+  
+  /// Destroy the [FileDownloader]. Subsequent use requires initialization
+  void destroy() {
+    // _batches.clear();
+    // _taskCompleters.clear();
+    // _shortTaskStatusCallbacks.clear();
+    // _shortTaskProgressCallbacks.clear();
+    // _taskStatusCallbacks.clear();
+    // _taskProgressCallbacks.clear();
+    // _notificationConfigs.clear();
+    _downloader.destroy();
+  }
 }
