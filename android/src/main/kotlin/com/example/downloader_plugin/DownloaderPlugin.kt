@@ -1,6 +1,7 @@
 package com.example.downloader_plugin
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
 import android.content.pm.PackageManager
@@ -48,6 +49,10 @@ class DownloaderPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, PluginR
     const val notificationPermissionRequestCode = 373921
     const val externalStoragePermissionRequestCode = 373922
 
+    /**
+     * [activity] is being set to null on detach
+     */
+    @SuppressLint("StaticFieldLeak")
     var activity: Activity? = null
     var canceledTaskIds = HashMap<String, Long>() // <taskId, timeMillis>
     var pausedTaskIds = HashSet<String>() // <taskId>
@@ -218,13 +223,13 @@ class DownloaderPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, PluginR
   private lateinit var applicationContext: Context
 
   override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
-    // create channels and handler
+    // Create channels and handler
     backgroundChannelCounter++
 
     if (backgroundChannel == null) {
-      // only set background channel once, as it has to be static field
-      // and per https://github.com/firebase/flutterfire/issues/9689 other
-      // plugins can create multiple instances of the plugin
+      // Set background channel once, as it has to be static field
+      // and per https://github.com/firebase/flutterfire/issues/9689
+      // other plugins can create multiple instances of the plugin
       backgroundChannel = MethodChannel(
         flutterPluginBinding.binaryMessenger,
         "downloader_plugin.background"
@@ -244,7 +249,7 @@ class DownloaderPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, PluginR
     val prefs = PreferenceManager.getDefaultSharedPreferences(applicationContext)
     val workInfoList = workManager.getWorkInfosByTag(TAG).get()
     if (workInfoList.isEmpty()) {
-      // remove persistent storage if no jobs found at all
+      // Remove persistent storage if no jobs found at all
       val editor = prefs.edit()
       editor.remove(keyTasksMap)
       editor.apply()
@@ -318,8 +323,7 @@ class DownloaderPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, PluginR
         true
       }
       externalStoragePermissionRequestCode -> {
-         externalStoragePermissionCompleter.complete(granted)
-        Log.i(TAG, "externalStoragePermissionCompleter.complete($granted)")
+        externalStoragePermissionCompleter.complete(granted)
         true
       }
       else -> {
@@ -384,8 +388,14 @@ class DownloaderPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, PluginR
    * Returns true if all cancellations were successful
    */
   private suspend fun methodCancelTasksWithIds(call: MethodCall, result: Result) {
-    Log.i(TAG, "methodCancelTasksWithIds: $call")
-    result.success("Android: methodCancelTasksWithIds")
+    @Suppress("UNCHECKED_CAST") val taskIds = call.arguments as List<String>
+    val workManager = WorkManager.getInstance(applicationContext)
+    Log.v(TAG, "Canceling taskIds $taskIds")
+    var success = true
+    for (taskId in taskIds) {
+      success = success && cancelActiveTaskWithId(applicationContext, taskId, workManager)
+    }
+    result.success(success)
   }
 
   /** Returns Task for this taskId, or nil */
@@ -455,30 +465,21 @@ class DownloaderPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, PluginR
     val directory = args[2] as String
     val mimeType = args[3] as String?
 
-    // first check and potentially ask for permissions
-    if (Build.VERSION.SDK_INT in 23..29 && ActivityCompat.checkSelfPermission(
-        applicationContext, Manifest.permission.WRITE_EXTERNAL_STORAGE
-      ) != PackageManager.PERMISSION_GRANTED
-    ) {
-      if (activity != null) {
-        activity?.requestPermissions(
-          arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE),
-          externalStoragePermissionRequestCode
+    if (Build.VERSION.SDK_INT in 23..29) {
+      if (ActivityCompat.checkSelfPermission(
+          applicationContext, Manifest.permission.WRITE_EXTERNAL_STORAGE
+        ) == PackageManager.PERMISSION_GRANTED) {
+        result.success(
+          moveToSharedStorage(
+            applicationContext,
+            filePath,
+            destination,
+            directory,
+            mimeType,
+          )
         )
-
-        // In order to move the file to external storage after permission is given,
-        // we could use a completableFuture or, perhaps, coroutines
-        // However, CompletableFuture is only available on API 24
-//        externalStoragePermissionCompleter.thenApplyAsync {
-//          result.success(
-//            moveToSharedStorage(
-//              applicationContext, filePath, destination, directory, mimeType
-//            )
-//          )
-//        }
-
-//        return
       }
+      return
     }
 
     result.success(moveToSharedStorage(applicationContext, filePath, destination, directory, mimeType))
