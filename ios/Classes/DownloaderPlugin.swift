@@ -11,12 +11,12 @@ public class Downloader: NSObject, FlutterPlugin, URLSessionDelegate, URLSession
     static let instance = Downloader()
     
     private static var resourceTimeout = 4 * 60 * 60.0 // in seconds
-    public static var sessionIdentifier = "com.bbflight.background_downloader.Downloader"
+    public static var sessionIdentifier = "com.example.downloader_plugin.Downloader"
     public static var flutterPluginRegistrantCallback: FlutterPluginRegistrantCallback?
     public static var backgroundChannel: FlutterMethodChannel?
-    public static var keyResumeDataMap = "com.bbflight.background_downloader.resumeDataMap"
-    public static var keyStatusUpdateMap = "com.bbflight.background_downloader.statusUpdateMap"
-    public static var keyProgressUpdateMap = "com.bbflight.background_downloader.progressUpdateMap"
+    public static var keyResumeDataMap = "com.example.downloader_plugin.resumeDataMap"
+    public static var keyStatusUpdateMap = "com.example.downloader_plugin.statusUpdateMap"
+    public static var keyProgressUpdateMap = "com.example.downloader_plugin.progressUpdateMap"
     
     public static var forceFailPostOnBackgroundChannel = false
     private static var backgroundCompletionHandler: (() -> Void)?
@@ -33,8 +33,8 @@ public class Downloader: NSObject, FlutterPlugin, URLSessionDelegate, URLSession
     }
     
     public static func register(with registrar: FlutterPluginRegistrar) {
-        let channel = FlutterMethodChannel(name: "com.bbflight.background_downloader", binaryMessenger: registrar.messenger())
-        backgroundChannel = FlutterMethodChannel(name: "com.bbflight.background_downloader.background", binaryMessenger: registrar.messenger())
+        let channel = FlutterMethodChannel(name: "com.example.background_downloader", binaryMessenger: registrar.messenger())
+        backgroundChannel = FlutterMethodChannel(name: "com.example.background_downloader.background", binaryMessenger: registrar.messenger())
         registrar.addMethodCallDelegate(instance, channel: channel)
         registrar.addApplicationDelegate(instance)
         registerNotificationCategories()

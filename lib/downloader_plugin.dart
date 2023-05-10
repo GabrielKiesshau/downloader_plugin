@@ -23,6 +23,12 @@ class DownloaderPlugin {
   /// a [TaskStatus.enqueued] update to the registered callback,
   /// if requested by its [updates] property
   Future<bool> enqueue(Task task) => _downloader.enqueue(task);
+  
+  /// Check if app has write permission
+  Future<bool> hasWritePermission() => _downloader.hasWritePermission();
+
+  /// Check if app has write permission
+  Future<void> requestWritePermission() => _downloader.requestWritePermission();
 
   // /// Resets the downloader by cancelling all ongoing tasks within
   // /// the provided [group]

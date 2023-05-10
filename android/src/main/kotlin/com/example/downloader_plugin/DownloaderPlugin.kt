@@ -1,19 +1,5 @@
 package com.example.downloader_plugin
 
-import java.lang.Long.min
-import java.util.concurrent.TimeUnit
-import java.util.concurrent.locks.ReentrantReadWriteLock
-
-import kotlin.concurrent.write
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withContext
-
-/** Gson */
-import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
-
 import android.Manifest
 import android.app.Activity
 import android.content.Context
@@ -21,12 +7,17 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.util.Log
 import android.util.Patterns
-
-/** AndroidX */
 import androidx.core.app.ActivityCompat
 import androidx.preference.PreferenceManager
 import androidx.work.*
-
+import com.example.downloader_plugin.TaskWorker.Companion.keyNotificationConfig
+import com.example.downloader_plugin.TaskWorker.Companion.keyStartByte
+import com.example.downloader_plugin.TaskWorker.Companion.keyTempFilename
+import com.example.downloader_plugin.enums.TaskStatus
+import com.example.downloader_plugin.models.ResumeData
+import com.example.downloader_plugin.models.Task
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.embedding.engine.plugins.activity.ActivityAware
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
@@ -35,13 +26,14 @@ import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
 import io.flutter.plugin.common.PluginRegistry
-
-import com.example.downloader_plugin.TaskWorker.Companion.keyNotificationConfig
-import com.example.downloader_plugin.TaskWorker.Companion.keyStartByte
-import com.example.downloader_plugin.TaskWorker.Companion.keyTempFilename
-import com.example.downloader_plugin.enums.TaskStatus
-import com.example.downloader_plugin.models.ResumeData
-import com.example.downloader_plugin.models.Task
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
+import java.lang.Long.min
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.locks.ReentrantReadWriteLock
+import kotlin.concurrent.write
 
 
 /** DownloaderPlugin */
@@ -156,14 +148,14 @@ class DownloaderPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, PluginR
     suspend fun cancelActiveTaskWithId(
       context: Context, taskId: String, workManager: WorkManager
     ): Boolean {
-      val workInfos = withContext(Dispatchers.IO) {
+      val workInfoList = withContext(Dispatchers.IO) {
         workManager.getWorkInfosByTag("taskId=$taskId").get()
       }
-      if (workInfos.isEmpty()) {
+      if (workInfoList.isEmpty()) {
         Log.d(TAG, "Could not find tasks to cancel")
         return false
       }
-      for (workInfo in workInfos) {
+      for (workInfo in workInfoList) {
         if (workInfo.state != WorkInfo.State.SUCCEEDED) {
           // send cancellation update for tasks that have not yet succeeded
           Log.d(TAG, "Canceling active task and sending status update")
@@ -200,7 +192,7 @@ class DownloaderPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, PluginR
      * Because this [task] is not managed by a [WorkManager] it is cancelled directly. This
      * is normally called from a notification when the task is paused (which is why it is
      * inactive), and therefore the caller must remove the notification that triggered the
-     * cancellation. See [NotificationReceiver]
+     * cancellation. See NotificationReceiver
      */
     suspend fun cancelInactiveTask(context: Context, task: Task) {
       prefsLock.write {
@@ -250,8 +242,8 @@ class DownloaderPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, PluginR
     // Clear expired items
     val workManager = WorkManager.getInstance(applicationContext)
     val prefs = PreferenceManager.getDefaultSharedPreferences(applicationContext)
-    val allWorkInfos = workManager.getWorkInfosByTag(TAG).get()
-    if (allWorkInfos.isEmpty()) {
+    val workInfoList = workManager.getWorkInfosByTag(TAG).get()
+    if (workInfoList.isEmpty()) {
       // remove persistent storage if no jobs found at all
       val editor = prefs.edit()
       editor.remove(keyTasksMap)
@@ -263,6 +255,8 @@ class DownloaderPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, PluginR
   override fun onMethodCall(call: MethodCall, result: Result) {
     runBlocking {
       when (call.method) {
+        "hasWritePermission" -> methodHasWritePermission(result)
+        "requestWritePermission" -> methodRequestWritePermission()
         "enqueue" -> methodEnqueue(call, result)
         "reset" -> methodReset(call, result)
         "allTasks" -> methodAllTasks(call, result)
@@ -479,7 +473,6 @@ class DownloaderPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, PluginR
         )
 
 //        externalStoragePermissionCompleter.thenApplyAsync {
-//          Log.i(TAG, "E")
 //          result.success(
 //            moveToSharedStorage(
 //              applicationContext, filePath, destination, directory, mimeType
@@ -492,6 +485,27 @@ class DownloaderPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, PluginR
     }
 
     result.success(moveToSharedStorage(applicationContext, filePath, destination, directory, mimeType))
+  }
+
+  private fun methodHasWritePermission(result: Result) {
+    val permission = ActivityCompat.checkSelfPermission(applicationContext, Manifest.permission.WRITE_EXTERNAL_STORAGE)
+
+    if (permission == PackageManager.PERMISSION_GRANTED) {
+      result.success(true)
+    } else {
+      result.success(false)
+    }
+  }
+
+  private fun methodRequestWritePermission() {
+    if (Build.VERSION.SDK_INT in 23..29) {
+      if (activity != null) {
+        activity?.requestPermissions(
+          arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE),
+          externalStoragePermissionRequestCode
+        )
+      }
+    }
   }
 
   /**

@@ -159,4 +159,14 @@ class NativeDownloader extends BaseDownloader {
   @override
   Future<String?> moveToSharedStorage(String filePath, SharedStorage destination, String directory, String? mimeType) =>
       _channel.invokeMethod<String?>('moveToSharedStorage', [filePath, destination.index, directory, mimeType]);
+  
+  @override
+  Future<bool> hasWritePermission() async {
+    return await _channel.invokeMethod<bool>('hasWritePermission') ?? false;
+  }
+  
+  @override
+  Future<void> requestWritePermission() async {
+    return await _channel.invokeMethod<void>('requestWritePermission');
+  }
 }
