@@ -466,12 +466,9 @@ class DownloaderPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, PluginR
           externalStoragePermissionRequestCode
         )
 
-        result.success(
-          moveToSharedStorage(
-            applicationContext, filePath, destination, directory, mimeType
-          )
-        )
-
+        // In order to move the file to external storage after permission is given,
+        // we could use a completableFuture or, perhaps, coroutines
+        // However, CompletableFuture is only available on API 24
 //        externalStoragePermissionCompleter.thenApplyAsync {
 //          result.success(
 //            moveToSharedStorage(
@@ -480,7 +477,7 @@ class DownloaderPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, PluginR
 //          )
 //        }
 
-        return
+//        return
       }
     }
 
