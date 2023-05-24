@@ -1,3 +1,4 @@
+import 'task.dart';
 import 'task_update.dart';
 
 /// A progress update event
@@ -10,5 +11,5 @@ import 'task_update.dart';
 class TaskProgressUpdate extends TaskUpdate {
   final double progress;
 
-  TaskProgressUpdate(super.task, this.progress);
+  TaskProgressUpdate(Task task, this.progress) : super(task);
 }

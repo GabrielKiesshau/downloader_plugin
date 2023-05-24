@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 import '../enums/base_directory.dart';
 import '../enums/updates.dart';
 import 'task.dart';
@@ -33,21 +35,37 @@ class DownloadTask extends Task {
   /// [metaData] user data
   DownloadTask({
     String? taskId,
-    required super.url,
-    super.urlQueryParameters,
+    @required String url,
+    Map<String, String> urlQueryParameters,
     String? filename,
-    super.headers,
-    super.post,
-    super.directory,
-    super.baseDirectory,
-    super.group,
-    super.updates,
-    super.requiresWiFi,
-    super.retries,
-    super.allowPause,
-    super.metaData,
-    super.creationTime,
-  }) : super(taskId: taskId, filename: filename);
+    Map<String, String> headers = const {},
+    dynamic post,
+    String directory = '',
+    BaseDirectory baseDirectory = BaseDirectory.applicationDocuments,
+    String group = 'default',
+    Updates updates = Updates.status,
+    bool requiresWiFi = false,
+    int retries = 0,
+    bool allowPause = false,
+    String metaData = '',
+    DateTime creationTime,
+  }) : super(
+    taskId: taskId,
+    filename: filename,
+    url: url,
+    urlQueryParameters: urlQueryParameters,
+    headers: headers,
+    post: post,
+    directory: directory,
+    baseDirectory: baseDirectory,
+    group: group,
+    updates: updates,
+    requiresWiFi: requiresWiFi,
+    retries: retries,
+    allowPause: allowPause,
+    metaData: metaData,
+    creationTime: creationTime,
+  );
 
   /// Creates [DownloadTask] object from JsonMap
   DownloadTask.fromJsonMap(Map<String, dynamic> jsonMap)

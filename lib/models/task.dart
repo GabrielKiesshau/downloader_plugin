@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:math';
 
+import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 
@@ -94,22 +95,30 @@ abstract class Task extends Request {
   /// [creationTime] time of task creation, 'now' by default.
   Task({
     String? taskId,
-    required super.url,
-    super.urlQueryParameters,
+    @required String url,
+    Map<String, String> urlQueryParameters,
     String? filename,
-    super.headers,
-    super.post,
+    Map<String, String> headers = const {},
+    dynamic post,
     this.directory = '',
     this.baseDirectory = BaseDirectory.applicationDocuments,
     this.group = 'default',
     this.updates = Updates.status,
     this.requiresWiFi = false,
-    super.retries,
+    int retries = 0,
     this.metaData = '',
     this.allowPause = false,
-    super.creationTime,
+    DateTime creationTime,
   })  : taskId = taskId ?? Random().nextInt(1 << 32).toString(),
-        filename = filename ?? Random().nextInt(1 << 32).toString() {
+        filename = filename ?? Random().nextInt(1 << 32).toString(),
+        super(
+          url: url,
+          urlQueryParameters: urlQueryParameters,
+          headers: headers,
+          post: post,
+          retries: retries,
+          creationTime: creationTime,
+        ) {
     if (filename?.isEmpty == true) {
       throw ArgumentError('Filename cannot be empty');
     }
