@@ -1,18 +1,18 @@
 import 'dart:async';
 import 'dart:developer' as dev;
-import 'dart:io';
+// import 'dart:io';
 import 'dart:math';
 
 import 'package:downloader_plugin/database.dart';
 import 'package:flutter/foundation.dart';
-import 'package:collection/collection.dart';
+// import 'package:collection/collection.dart';
 import 'package:localstore/localstore.dart';
 
 import 'enums/shared_storage.dart';
 import 'enums/task_status.dart';
-import 'enums/undelivered.dart';
-import 'models/download_task.dart';
-import 'models/resume_data.dart';
+// import 'enums/undelivered.dart';
+// import 'models/download_task.dart';
+// import 'models/resume_data.dart';
 import 'models/task.dart';
 import 'models/task_notification_config.dart';
 import 'models/task_progress_callback.dart';
@@ -100,7 +100,7 @@ abstract class BaseDownloader {
 
   /// Enqueue the task
   @mustCallSuper
-  Future<bool> enqueue(Task task, [TaskNotificationConfig? notificationConfig]) async {
+  Future<bool> enqueue(Task task, [TaskNotificationConfig notificationConfig]) async {
     dev.log('enqueue()', name: 'BaseDownloader');
     // if (task.allowPause) {
     //   canResumeTask[task] = Completer();
@@ -270,7 +270,7 @@ abstract class BaseDownloader {
   // }
 
   /// Remove resumeData for this taskId, or all if null
-  Future<void> removeResumeData([String? taskId]) async {
+  Future<void> removeResumeData([String taskId]) async {
     if (taskId == null) {
       await _db.collection(resumeDataPath).delete();
     }
@@ -295,7 +295,7 @@ abstract class BaseDownloader {
   // }
 
   /// Remove paused task for this taskId, or all if null
-  Future<void> removePausedTask([String? taskId]) async {
+  Future<void> removePausedTask([String taskId]) async {
     if (taskId == null) {
       await _db.collection(pausedTasksPath).delete();
     }
@@ -324,7 +324,7 @@ abstract class BaseDownloader {
   /// [destination] and potential subdirectory [directory]
   ///
   /// Returns the path to the file in shared storage, or null
-  Future<String?> moveToSharedStorage(String filePath, SharedStorage destination, String directory, String? mimeType) {
+  Future<String> moveToSharedStorage(String filePath, SharedStorage destination, String directory, String mimeType) {
     return Future.value(null);
   }
 
@@ -432,7 +432,7 @@ abstract class BaseDownloader {
   }
 
   /// Insert or update the [TaskRecord] in the tracking database
-  Future<void> _updateTaskInDatabase(Task task, {TaskStatus? status, double? progress}) async {
+  Future<void> _updateTaskInDatabase(Task task, {TaskStatus status, double progress}) async {
     if (trackedGroups.contains(task.group)) {
       if (status == null && progress != null) {
         // update existing record with progress only
@@ -469,7 +469,7 @@ abstract class BaseDownloader {
             break;
         }
       }
-      Database().updateRecord(TaskRecord(task, status!, progress!));
+      Database().updateRecord(TaskRecord(task, status, progress));
     }
   }
 

@@ -5,7 +5,7 @@ import 'task.dart';
 /// Contains tasks and results related to a batch of tasks
 class Batch {
   final List<Task> tasks;
-  final BatchProgressCallback? batchProgressCallback;
+  final BatchProgressCallback batchProgressCallback;
   final results = <Task, TaskStatus>{};
 
   Batch(this.tasks, this.batchProgressCallback);

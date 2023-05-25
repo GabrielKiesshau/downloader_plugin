@@ -21,20 +21,20 @@ class Database {
   /// Returns all [TaskRecord]
   ///
   /// Optionally, specify a [group] to filter by
-  Future<List<TaskRecord>> allRecords({String? group}) async {
+  Future<List<TaskRecord>> allRecords({String group}) async {
     final allJsonRecords = await _db.collection(tasksPath).get();
     final allRecords =
-        allJsonRecords?.values.map((e) => TaskRecord.fromJsonMap(e));
+        allJsonRecords?.values?.map((e) => TaskRecord.fromJsonMap(e));
     return group == null
         ? allRecords?.toList() ?? []
-        : allRecords?.where((element) => element.group == group).toList() ?? [];
+        : allRecords?.where((element) => element.group == group)?.toList() ?? [];
   }
 
   /// Returns all [TaskRecord] older than [age]
   ///
   /// Optionally, specify a [group] to filter by
   Future<List<TaskRecord>> allRecordsOlderThan(Duration age,
-      {String? group}) async {
+      {String group}) async {
     final allRecordsInGroup = await allRecords(group: group);
     final now = DateTime.now();
     return allRecordsInGroup
@@ -43,7 +43,7 @@ class Database {
   }
 
   /// Return [TaskRecord] for this [taskId]
-  Future<TaskRecord?> recordForId(String taskId) async {
+  Future<TaskRecord> recordForId(String taskId) async {
     final jsonMap = await _db.collection(tasksPath).doc(_safeId(taskId)).get();
     return jsonMap != null ? TaskRecord.fromJsonMap(jsonMap) : null;
   }
@@ -66,7 +66,7 @@ class Database {
   /// Delete all records
   ///
   /// Optionally, specify a [group] to filter by
-  Future<void> deleteAllRecords({String? group}) async {
+  Future<void> deleteAllRecords({String group}) async {
     if (group == null) {
       return _db.collection(tasksPath).delete();
     }
@@ -135,7 +135,7 @@ class TaskRecord {
   }
 
   /// Copy with optional replacements
-  TaskRecord copyWith({Task? task, TaskStatus? taskStatus, double? progress}) =>
+  TaskRecord copyWith({Task task, TaskStatus taskStatus, double progress}) =>
       TaskRecord(task ?? this.task, taskStatus ?? this.taskStatus,
           progress ?? this.progress);
 

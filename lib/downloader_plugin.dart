@@ -4,7 +4,7 @@ import 'base_downloader.dart';
 import 'enums/shared_storage.dart';
 import 'models/download_task.dart';
 import 'models/task.dart';
-import 'models/task_notification_config.dart';
+// import 'models/task_notification_config.dart';
 import 'models/task_update.dart';
 
 class DownloaderPlugin {
@@ -114,11 +114,11 @@ class DownloaderPlugin {
   /// Returns the path to the stored file, or null if not successful
   ///
   /// Platform-dependent, not consistent across all platforms
-  Future<String?> moveToSharedStorage(
+  Future<String> moveToSharedStorage(
     DownloadTask task,
     SharedStorage destination, {
     String directory = '',
-    String? mimeType,
+    String mimeType,
   }) async =>
       moveFileToSharedStorage(await task.filePath(), destination, directory: directory, mimeType: mimeType);
 
@@ -130,11 +130,11 @@ class DownloaderPlugin {
   /// Returns the path to the stored file, or null if not successful
   ///
   /// Platform-dependent, not consistent across all platforms
-  Future<String?> moveFileToSharedStorage(
+  Future<String> moveFileToSharedStorage(
     String filePath,
     SharedStorage destination, {
     String directory = '',
-    String? mimeType,
+    String mimeType,
   }) async =>
       _downloader.moveToSharedStorage(filePath, destination, directory, mimeType);
   

@@ -10,10 +10,10 @@ import 'task_notification.dart';
 /// including pause, failed and notFound status
 class TaskNotificationConfig {
   final dynamic taskOrGroup;
-  final TaskNotification? running;
-  final TaskNotification? complete;
-  final TaskNotification? error;
-  final TaskNotification? paused;
+  final TaskNotification running;
+  final TaskNotification complete;
+  final TaskNotification error;
+  final TaskNotification paused;
   final bool progressBar;
 
   TaskNotificationConfig({this.taskOrGroup, this.running, this.complete, this.error, this.paused, this.progressBar = false}) {

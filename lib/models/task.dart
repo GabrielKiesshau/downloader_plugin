@@ -94,10 +94,10 @@ abstract class Task extends Request {
   /// [metaData] user data
   /// [creationTime] time of task creation, 'now' by default.
   Task({
-    String? taskId,
+    String taskId,
     @required String url,
     Map<String, String> urlQueryParameters,
-    String? filename,
+    String filename,
     Map<String, String> headers = const {},
     dynamic post,
     this.directory = '',
@@ -138,7 +138,7 @@ abstract class Task extends Request {
 
   /// Returns the absolute path to the file represented by this task
   Future<String> filePath() async {
-    final Directory baseDir;
+    Directory baseDir;
     switch (baseDirectory) {
       case BaseDirectory.applicationDocuments:
         baseDir = await getApplicationDocumentsDirectory();
@@ -157,21 +157,21 @@ abstract class Task extends Request {
 
   /// Returns a copy of the [Task] with optional changes to specific fields
   Task copyWith({
-    String? taskId,
-    String? url,
-    String? filename,
-    Map<String, String>? headers,
-    Object? post,
-    String? directory,
-    BaseDirectory? baseDirectory,
-    String? group,
-    Updates? updates,
-    bool? requiresWiFi,
-    int? retries,
-    int? retriesRemaining,
-    bool? allowPause,
-    String? metaData,
-    DateTime? creationTime,
+    String taskId,
+    String url,
+    String filename,
+    Map<String, String> headers,
+    Object post,
+    String directory,
+    BaseDirectory baseDirectory,
+    String group,
+    Updates updates,
+    bool requiresWiFi,
+    int retries,
+    int retriesRemaining,
+    bool allowPause,
+    String metaData,
+    DateTime creationTime,
   });
 
   /// Creates [Task] object from JsonMap

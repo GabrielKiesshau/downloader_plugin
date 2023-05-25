@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:developer' as dev;
-import 'dart:io';
+// import 'dart:io';
 
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
@@ -9,8 +9,8 @@ import 'package:flutter/widgets.dart';
 import 'base_downloader.dart';
 import 'enums/shared_storage.dart';
 import 'enums/task_status.dart';
-import 'enums/undelivered.dart';
-import 'models/resume_data.dart';
+// import 'enums/undelivered.dart';
+// import 'models/resume_data.dart';
 import 'models/task.dart';
 import 'models/task_notification_config.dart';
 
@@ -65,9 +65,10 @@ class NativeDownloader extends BaseDownloader {
   }
 
   @override
-  Future<bool> enqueue(Task task, [TaskNotificationConfig? notificationConfig]) async {
+  Future<bool> enqueue(Task task, [TaskNotificationConfig notificationConfig]) async {
     super.enqueue(task);
     dev.log('enqueue()', name: 'NativeDownloader');
+
     return await _channel.invokeMethod<bool>('enqueue', [jsonEncode(task.toJsonMap()), jsonEncode(notificationConfig?.toJsonMap())]) ?? false;
   }
 
@@ -157,8 +158,9 @@ class NativeDownloader extends BaseDownloader {
   // }
 
   @override
-  Future<String?> moveToSharedStorage(String filePath, SharedStorage destination, String directory, String? mimeType) =>
-      _channel.invokeMethod<String?>('moveToSharedStorage', [filePath, destination.index, directory, mimeType]);
+  Future<String> moveToSharedStorage(String filePath, SharedStorage destination, String directory, String mimeType) {
+    return _channel.invokeMethod<String>('moveToSharedStorage', [filePath, destination.index, directory, mimeType]);
+  }
   
   @override
   Future<bool> hasWritePermission() async {

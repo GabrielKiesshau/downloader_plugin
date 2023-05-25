@@ -4,7 +4,7 @@ final startsWithPathSeparator = RegExp(r'^[/\\]');
 
 /// Return url String composed of the [url] and the
 /// [urlQueryParameters], if given
-String urlWithQueryParameters(String url, Map<String, String>? urlQueryParameters) {
+String urlWithQueryParameters(String url, Map<String, String> urlQueryParameters) {
   if (urlQueryParameters == null || urlQueryParameters.isEmpty) {
     return url;
   }

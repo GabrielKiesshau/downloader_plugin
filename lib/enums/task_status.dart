@@ -44,8 +44,10 @@ enum TaskStatus {
   /// there. If resume fails (e.g. because the temp file with the partial
   /// download has been deleted by the operating system) status will switch
   /// to [TaskStatus.failed]
-  paused;
+  paused,
+}
 
+extension TaskStatusExtension on TaskStatus {
   /// True if this state is one of the 'final' states, meaning no more
   /// state changes are possible
   bool get isFinalState {
@@ -55,11 +57,12 @@ enum TaskStatus {
       case TaskStatus.failed:
       case TaskStatus.canceled:
         return true;
-
+      
       case TaskStatus.enqueued:
       case TaskStatus.running:
       case TaskStatus.waitingToRetry:
       case TaskStatus.paused:
+      default:
         return false;
     }
   }

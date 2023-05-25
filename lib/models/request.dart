@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import 'package:flutter/foundation.dart';
 
 import '../utils.dart';
@@ -20,7 +18,7 @@ class Request {
   /// - a List of bytes: POST request with [post] as the body
   ///
   /// The field [post] will be a UInt8List representing the bytes, or the String
-  final String? post;
+  final String post;
 
   /// Maximum number of retries the downloader should attempt
   ///
@@ -44,7 +42,7 @@ class Request {
   /// - a List of bytes: POST request with [post] as the body
   ///
   /// [retries] if >0 will retry a failed download this many times
-  Request({@required String url, Map<String, String>? urlQueryParameters, this.headers = const {}, post, this.retries = 0, DateTime? creationTime})
+  Request({@required String url, Map<String, String> urlQueryParameters, this.headers = const {}, post, this.retries = 0, DateTime creationTime})
       : url = urlWithQueryParameters(url, urlQueryParameters),
         post = post is Uint8List ? String.fromCharCodes(post) : post,
         retriesRemaining = retries,

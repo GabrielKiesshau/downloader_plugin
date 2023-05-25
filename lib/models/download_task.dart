@@ -34,10 +34,10 @@ class DownloadTask extends Task {
   /// [retries] if >0 will retry a failed download this many times
   /// [metaData] user data
   DownloadTask({
-    String? taskId,
+    String taskId,
     @required String url,
     Map<String, String> urlQueryParameters,
-    String? filename,
+    String filename,
     Map<String, String> headers = const {},
     dynamic post,
     String directory = '',
@@ -80,21 +80,21 @@ class DownloadTask extends Task {
 
   @override
   DownloadTask copyWith({
-    String? taskId,
-    String? url,
-    String? filename,
-    Map<String, String>? headers,
-    Object? post,
-    String? directory,
-    BaseDirectory? baseDirectory,
-    String? group,
-    Updates? updates,
-    bool? requiresWiFi,
-    int? retries,
-    int? retriesRemaining,
-    bool? allowPause,
-    String? metaData,
-    DateTime? creationTime,
+    String taskId,
+    String url,
+    String filename,
+    Map<String, String> headers,
+    Object post,
+    String directory,
+    BaseDirectory baseDirectory,
+    String group,
+    Updates updates,
+    bool requiresWiFi,
+    int retries,
+    int retriesRemaining,
+    bool allowPause,
+    String metaData,
+    DateTime creationTime,
   }) =>
       DownloadTask(
         taskId: taskId ?? this.taskId,
