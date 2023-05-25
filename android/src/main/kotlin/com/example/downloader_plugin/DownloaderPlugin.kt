@@ -496,7 +496,7 @@ class DownloaderPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, PluginR
   }
 
   private fun methodRequestWritePermission() {
-    if (Build.VERSION.SDK_INT in 23..29) {
+    if (Build.VERSION.SDK_INT in 23..32) {
       if (activity != null) {
         activity?.requestPermissions(
           arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE),
