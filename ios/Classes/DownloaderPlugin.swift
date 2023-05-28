@@ -342,15 +342,13 @@ public class Downloader: NSObject, FlutterPlugin, URLSessionDelegate, URLSession
         result(nil)
     }
     
-    
-    //MARK: Helpers for Task and urlSessionTask
-    
-    
     /// Return all tasks in this urlSession
-    private func getAllTasks() async -> [Task] {
+    private func getAllTasks(completion: @escaping ([Task]) -> Void) {
         Downloader.urlSession = Downloader.urlSession ?? createUrlSession()
-        guard let urlSessionTasks = await Downloader.urlSession?.allTasks else { return [] }
-        return urlSessionTasks.map({ getTaskFrom(urlSessionTask: $0) }).filter({ $0 != nil }) as! [Task]
+        Downloader.urlSession?.getAllTasks(completionHandler: { urlSessionTasks in
+            let tasks = urlSessionTasks?.compactMap { getTaskFrom(urlSessionTask: $0) } ?? []
+            completion(tasks)
+        })
     }
     
     /// Return the active task with this taskId, or nil
