@@ -205,13 +205,14 @@ public class Downloader: NSObject, FlutterPlugin, URLSessionDelegate, URLSession
     /// Resets the downloadworker by cancelling all ongoing download tasks
     ///
     /// Returns the number of tasks canceled
-    private func methodReset(call: FlutterMethodCall, result: @escaping FlutterResult) async {
+    private func methodReset(call: FlutterMethodCall, result: @escaping FlutterResult) {
         let group = call.arguments as! String
-        let tasksToCancel = await getAllUrlSessionTasks(group: group)
-        tasksToCancel.forEach({$0.cancel()})
-        let numTasks = tasksToCancel.count
-        os_log("reset removed %d unfinished tasks", log: log, type: .info, numTasks)
-        result(numTasks)
+        getAllUrlSessionTasks(group: group) { tasksToCancel in
+            tasksToCancel.forEach { $0.cancel() }
+            let numTasks = tasksToCancel.count
+            os_log("reset removed %d unfinished tasks", log: log, type: .info, numTasks)
+            result(numTasks)
+        }
     }
     
     /// Returns a list with all tasks in progress, as a list of JSON strings
