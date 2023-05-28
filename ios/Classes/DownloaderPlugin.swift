@@ -208,7 +208,7 @@ public class Downloader: NSObject, FlutterPlugin, URLSessionDelegate, URLSession
     private func methodReset(call: FlutterMethodCall, result: @escaping FlutterResult) {
         let group = call.arguments as! String
         getAllUrlSessionTasks(group: group) { tasksToCancel in
-            tasksToCancel.forEach { $0.cancel() }
+            tasksToCancel.forEach({ $0.cancel() })
             let numTasks = tasksToCancel.count
             os_log("reset removed %d unfinished tasks", log: log, type: .info, numTasks)
             result(numTasks)
@@ -343,18 +343,25 @@ public class Downloader: NSObject, FlutterPlugin, URLSessionDelegate, URLSession
     }
     
     /// Return all urlSessionsTasks in this urlSession
-    private func getAllUrlSessionTasks(group: String? = nil) async -> [URLSessionTask] {
+    private func getAllUrlSessionTasks(group: String? = nil, completion: @escaping ([URLSessionTask]) -> Void) {
         Downloader.urlSession = Downloader.urlSession ?? createUrlSession()
         if (group == nil) {
-            guard let urlSessionTasks = await Downloader.urlSession?.allTasks else { return [] }
-            return urlSessionTasks
+            Downloader.urlSession?.getAllTasks(
+                completionHandler: {
+                    tasks in completion(tasks)
+                }
+            )
+        } else {
+            Downloader.urlSession?.getAllTasks(
+                completionHandler: { tasks in
+                    let tasksInGroup = tasks.filter({
+                        guard let task = getTaskFrom(urlSessionTask: $0) else { return false }
+                        return task.group == group
+                    })
+                    completion(tasksInGroup)
+                }
+            )
         }
-        guard let urlSessionTasks = await Downloader.urlSession?.allTasks else { return [] }
-        let urlSessionTasksInGroup = urlSessionTasks.filter({
-            guard let task = getTaskFrom(urlSessionTask: $0) else { return false }
-            return task.group == group
-        })
-        return urlSessionTasksInGroup
     }
     
     /// Return the urlSessionTask matching this taskId, or nil
