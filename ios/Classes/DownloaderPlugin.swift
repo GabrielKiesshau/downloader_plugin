@@ -210,7 +210,7 @@ public class Downloader: NSObject, FlutterPlugin, URLSessionDelegate, URLSession
         let group = call.arguments as! String
 
         Downloader.urlSession = Downloader.urlSession ?? createUrlSession()
-        
+
         Downloader.urlSession?.getAllTasks(
             completionHandler: { urlSessionTasks in
                 guard let tasks = urlSessionTasks else {
@@ -230,15 +230,25 @@ public class Downloader: NSObject, FlutterPlugin, URLSessionDelegate, URLSession
     /// Cancels ongoing tasks whose taskId is in the list provided with this call
     ///
     /// Returns true if all cancellations were successful
-    private func methodCancelTasksWithIds(call: FlutterMethodCall, result: @escaping FlutterResult) async {
+    private func methodCancelTasksWithIds(call: FlutterMethodCall, result: @escaping FlutterResult) {
         let taskIds = call.arguments as! [String]
+
         os_log("Canceling taskIds %@", log: log, type: .info, taskIds)
-        let tasksToCancel = await getAllUrlSessionTasks().filter({
-            guard let task = getTaskFrom(urlSessionTask: $0) else { return false }
-            return taskIds.contains(task.taskId)
+
+        getAllUrlSessionTasks(completion: { urlSessionTasks in
+            guard let tasks = urlSessionTasks else {
+                result(false)
+                return
+            }
+
+            let tasksToCancel =  tasks.filter({ urlSessionTask in
+                guard let task = getTaskFrom(urlSessionTask: urlSessionTask) else { return false }
+                return taskIds.contains(task.taskId)
+            })
+
+            tasksToCancel.forEach({ $0.cancel() })
+            result(true)
         })
-        tasksToCancel.forEach({$0.cancel()})
-        result(true)
     }
     
     /// Returns Task for this taskId, or nil
