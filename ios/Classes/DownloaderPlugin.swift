@@ -272,25 +272,19 @@ public class Downloader: NSObject, FlutterPlugin, URLSessionDelegate, URLSession
         Downloader.urlSession = Downloader.urlSession ?? createUrlSession()
 
         getUrlSessionTaskWithId(taskId: taskId, completion: { urlSessionTask in
-            guard let downloadTask = urlSessionTask as? URLSessionDownloadTask,
+            if let downloadTask = urlSessionTask as? URLSessionDownloadTask,
                 let task = getTaskFrom(urlSessionTask: downloadTask),
-                // let resumeData = downloadTask.cancelByProducingResumeData()
                 let resumeData = downloadTask.cancel(byProducingResumeData: { resumeData in
-                    // Handle the resume data here
-                    if let resumeData = resumeData {
-                        // Resume data is available
-                        // Use resumeData as needed
-                    } else {
-                        // Resume data is not available
-                    }
-                })
-            else {
+                    let processResult = processResumeData(task: task, resumeData: resumeData)
+                    result(processResult)
+                }) {
+                // Resume data is available immediately
+                let processResult = processResumeData(task: task, resumeData: resumeData)
+                result(processResult)
+            } else {
                 os_log("Could not pause task - likely not enqueued yet", log: log, type: .info)
                 result(false)
-                return
             }
-            let processResult = processResumeData(task: task, resumeData: resumeData)
-            result(processResult)
         })
     }
     
