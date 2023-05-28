@@ -206,7 +206,7 @@ public class Downloader: NSObject, FlutterPlugin, URLSessionDelegate, URLSession
     }
     
     /// Returns a list with all tasks in progress, as a list of JSON strings
-    private func methodAllTasks(call: FlutterMethodCall, result: @escaping FlutterResult) async {
+    private func methodAllTasks(call: FlutterMethodCall, result: @escaping FlutterResult) {
         let group = call.arguments as! String
         Downloader.urlSession = Downloader.urlSession ?? createUrlSession()
 
