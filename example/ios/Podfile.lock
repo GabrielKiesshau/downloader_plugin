@@ -1,0 +1,29 @@
+PODS:
+  - downloader_plugin (0.0.1):
+    - Flutter
+  - Flutter (1.0.0)
+  - path_provider_foundation (0.0.1):
+    - Flutter
+    - FlutterMacOS
+
+DEPENDENCIES:
+  - downloader_plugin (from `.symlinks/plugins/downloader_plugin/ios`)
+  - Flutter (from `Flutter`)
+  - path_provider_foundation (from `.symlinks/plugins/path_provider_foundation/ios`)
+
+EXTERNAL SOURCES:
+  downloader_plugin:
+    :path: ".symlinks/plugins/downloader_plugin/ios"
+  Flutter:
+    :path: Flutter
+  path_provider_foundation:
+    :path: ".symlinks/plugins/path_provider_foundation/ios"
+
+SPEC CHECKSUMS:
+  downloader_plugin: 06054eabc15440f3c71005098c4679043d90a743
+  Flutter: f04841e97a9d0b0a8025694d0796dd46242b2854
+  path_provider_foundation: c68054786f1b4f3343858c1e1d0caaded73f0be9
+
+PODFILE CHECKSUM: 7368163408c647b7eb699d0d788ba6718e18fb8d
+
+COCOAPODS: 1.11.3
