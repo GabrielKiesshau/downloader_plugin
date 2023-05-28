@@ -617,8 +617,7 @@ public class Downloader: NSObject, FlutterPlugin, URLSessionDelegate, URLSession
     }
     
     @MainActor
-    public func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse) async
-    {
+    public func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse) {
         if ourCategories.contains(response.notification.request.content.categoryIdentifier) {
             // only handle "our" categories, in case another plugin is a notification center delegate
             let userInfo = response.notification.request.content.userInfo
@@ -629,19 +628,27 @@ public class Downloader: NSObject, FlutterPlugin, URLSessionDelegate, URLSession
             }
             switch response.actionIdentifier {
             case "pause_action":
-                guard let urlSessionTask = await getUrlSessionTaskWithId(taskId: task.taskId) as? URLSessionDownloadTask,
-                      let resumeData = await urlSessionTask.cancelByProducingResumeData()
-                else {
-                    os_log("Could not pause task in response to notification action", log: log, type: .info)
-                    return
+                getUrlSessionTaskWithId(taskId: task.taskId) { urlSessionTask in
+                    if let downloadTask = urlSessionTask as? URLSessionDownloadTask,
+                    let resumeData = downloadTask.cancel(byProducingResumeData: { resumeData in
+                        let _ = processResumeData(task: task, resumeData: resumeData)
+                    }) {
+                        // Resume data is available immediately
+                        let _ = processResumeData(task: task, resumeData: resumeData)
+                    } else {
+                        os_log("Could not pause task in response to notification action", log: log, type: .info)
+                    }
                 }
-                _ = processResumeData(task: task, resumeData: resumeData)
             case "cancel_action":
-                let urlSessionTaskToCancel = await getAllUrlSessionTasks().first(where: {
-                    guard let taskInUrlSessionTask = getTaskFrom(urlSessionTask: $0) else { return false }
-                    return taskInUrlSessionTask.taskId == task.taskId
-                })
-                urlSessionTaskToCancel?.cancel()
+                getAllUrlSessionTasks { urlSessionTasks in
+                    let urlSessionTaskToCancel = urlSessionTasks.first(where: {
+                        if let taskInUrlSessionTask = getTaskFrom(urlSessionTask: $0) {
+                            return taskInUrlSessionTask.taskId == task.taskId
+                        }
+                        return false
+                    })
+                    urlSessionTaskToCancel?.cancel()
+                }
             case "cancel_inactive_action":
                 processStatusUpdate(task: task, status: .canceled)
             case "resume_action":
@@ -650,15 +657,13 @@ public class Downloader: NSObject, FlutterPlugin, URLSessionDelegate, URLSession
                     os_log("Resume data for taskId %@ no longer available: restarting", log: log, type: .info)
                 }
                 doEnqueue(taskJsonString: userInfo["task"] as! String, notificationConfigJsonString: userInfo["notificationConfig"] as? String, resumeDataAsBase64String: resumeDataAsBase64String, result: nil)
-                
             default:
-                do {}
+                break
             }
         }
     }
     
-    
-    //MARK: helper methods
+    // Helper methods
     
     /// Creates a urlSession
     private func createUrlSession() -> URLSession {
