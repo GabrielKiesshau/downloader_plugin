@@ -252,13 +252,18 @@ public class Downloader: NSObject, FlutterPlugin, URLSessionDelegate, URLSession
     }
     
     /// Returns Task for this taskId, or nil
-    private func methodTaskForId(call: FlutterMethodCall, result: @escaping FlutterResult) async {
+    private func methodTaskForId(call: FlutterMethodCall, result: @escaping FlutterResult) {
         let taskId = call.arguments as! String
-        guard let task = await getTaskWithId(taskId: taskId) else {
-            result(nil)
-            return
-        }
-        result(jsonStringFor(task: task))
+        
+        getTaskWithId(taskId: taskId, completion: { task in
+            guard let task = task else {
+                result(nil)
+                return
+            }
+
+            let jsonString = jsonStringFor(task: task)
+            result(jsonString)
+        })
     }
     
     /// Pauses Task for this taskId. Returns true of pause likely successful, false otherwise
