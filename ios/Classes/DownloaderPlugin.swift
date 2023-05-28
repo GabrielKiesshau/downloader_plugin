@@ -601,18 +601,17 @@ public class Downloader: NSObject, FlutterPlugin, URLSessionDelegate, URLSession
     
     //MARK: UNUserNotificationCenterDelegate
     
-    public func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification) async -> UNNotificationPresentationOptions
-    {
+    public func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
         if ourCategories.contains(notification.request.content.categoryIdentifier) {
             if #available(iOS 14.0, *) {
-                return UNNotificationPresentationOptions.list
+                completionHandler(.list)
             } else {
-                return UNNotificationPresentationOptions.alert
+                completionHandler(.alert)
             }
+        } else {
+            completionHandler([])
         }
-        return []
     }
-    
     
     @MainActor
     public func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse) async
