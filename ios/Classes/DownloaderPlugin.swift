@@ -208,14 +208,23 @@ public class Downloader: NSObject, FlutterPlugin, URLSessionDelegate, URLSession
     /// Returns a list with all tasks in progress, as a list of JSON strings
     private func methodAllTasks(call: FlutterMethodCall, result: @escaping FlutterResult) async {
         let group = call.arguments as! String
+
         Downloader.urlSession = Downloader.urlSession ?? createUrlSession()
-        guard let urlSessionTasks = await Downloader.urlSession?.allTasks else {
-            result(nil)
-            return
-        }
-        let tasksAsListOfJsonStrings = urlSessionTasks.filter({ $0.state == .running || $0.state == .suspended }).map({ getTaskFrom(urlSessionTask: $0)}).filter({ $0?.group == group }).map({ jsonStringFor(task: $0!) }).filter({ $0 != nil }) as! [String]
-        os_log("Returning %d unfinished tasks", log: log, type: .info, tasksAsListOfJsonStrings.count)
-        result(tasksAsListOfJsonStrings)
+        
+        Downloader.urlSession?.getAllTasks(
+            completionHandler: { urlSessionTasks in
+                guard let tasks = urlSessionTasks else {
+                    result(nil)
+                    return
+                }
+
+            let filteredTasks = tasks.filter({ $0.state == .running || $0.state == .suspended })
+            let filteredTasksInGroup = filteredTasks.compactMap({ getTaskFrom(urlSessionTask: $0) }).filter({ $0.group == group })
+            let jsonStrings = filteredTasksInGroup.compactMap({ jsonStringFor(task: $0) })
+      
+            os_log("Returning %d unfinished tasks", log: log, type: .info, jsonStrings.count)
+            result(jsonStrings)
+        })
     }
     
     /// Cancels ongoing tasks whose taskId is in the list provided with this call
