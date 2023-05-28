@@ -208,7 +208,6 @@ public class Downloader: NSObject, FlutterPlugin, URLSessionDelegate, URLSession
     /// Returns a list with all tasks in progress, as a list of JSON strings
     private func methodAllTasks(call: FlutterMethodCall, result: @escaping FlutterResult) async {
         let group = call.arguments as! String
-
         Downloader.urlSession = Downloader.urlSession ?? createUrlSession()
 
         Downloader.urlSession?.getAllTasks(
@@ -269,18 +268,22 @@ public class Downloader: NSObject, FlutterPlugin, URLSessionDelegate, URLSession
     /// Pauses Task for this taskId. Returns true of pause likely successful, false otherwise
     ///
     /// If pause is not successful, task will be canceled (attempted)
-    private func methodPause(call: FlutterMethodCall, result: @escaping FlutterResult) async {
+    private func methodPause(call: FlutterMethodCall, result: @escaping FlutterResult) {
         let taskId = call.arguments as! String
         Downloader.urlSession = Downloader.urlSession ?? createUrlSession()
-        guard let urlSessionTask = await getUrlSessionTaskWithId(taskId: taskId) as? URLSessionDownloadTask,
-              let task = await getTaskWithId(taskId: taskId),
-              let resumeData = await urlSessionTask.cancelByProducingResumeData()
-        else {
-            os_log("Could not pause task - likely not enqueued yet", log: log, type: .info)
-            result(false)
-            return
-        }
-        result(processResumeData(task: task, resumeData: resumeData))
+
+        getUrlSessionTaskWithId(taskId: taskId, completion: { urlSessionTask in
+            guard let downloadTask = urlSessionTask as? URLSessionDownloadTask,
+                let task = getTaskFrom(urlSessionTask: downloadTask),
+                let resumeData = downloadTask.cancelByProducingResumeData()
+            else {
+                os_log("Could not pause task - likely not enqueued yet", log: log, type: .info)
+                result(false)
+                return
+            }
+            let processResult = processResumeData(task: task, resumeData: resumeData)
+            result(processResult)
+        })
     }
     
     /// Returns a JSON String of a map of [ResumeData], keyed by taskId, that has been stored
