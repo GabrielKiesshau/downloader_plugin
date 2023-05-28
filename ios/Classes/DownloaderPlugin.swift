@@ -354,8 +354,11 @@ public class Downloader: NSObject, FlutterPlugin, URLSessionDelegate, URLSession
     }
     
     /// Return the active task with this taskId, or nil
-    private func getTaskWithId(taskId: String) async -> Task? {
-        return await getAllTasks().first(where: { $0.taskId == taskId })
+    private func getTaskWithId(taskId: String, completion: @escaping (Task?) -> Void) {
+        getAllTasks { tasks in
+            let task = tasks.first { $0.taskId == taskId }
+            completion(task)
+        }
     }
     
     /// Return all urlSessionsTasks in this urlSession
