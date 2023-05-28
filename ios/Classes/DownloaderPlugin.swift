@@ -210,19 +210,17 @@ public class Downloader: NSObject, FlutterPlugin, URLSessionDelegate, URLSession
         let group = call.arguments as! String
         Downloader.urlSession = Downloader.urlSession ?? createUrlSession()
 
-        Downloader.urlSession?.getAllTasks(
-            completionHandler: { urlSessionTasks in
-                guard let tasks = urlSessionTasks else {
-                    result(nil)
-                    return
-                }
+        Downloader.urlSession?.getAllTasks(completionHandler: { urlSessionTasks in
+            if let urlSessionTasks = urlSessionTasks {
+                let filteredTasks = urlSessionTasks.filter({ $0.state == .running || $0.state == .suspended })
+                let filteredTasksInGroup = filteredTasks.compactMap({ getTaskFrom(urlSessionTask: $0) }).filter({ $0.group == group })
+                let jsonStrings = filteredTasksInGroup.compactMap({ jsonStringFor(task: $0) })
 
-            let filteredTasks = tasks.filter({ $0.state == .running || $0.state == .suspended })
-            let filteredTasksInGroup = filteredTasks.compactMap({ getTaskFrom(urlSessionTask: $0) }).filter({ $0.group == group })
-            let jsonStrings = filteredTasksInGroup.compactMap({ jsonStringFor(task: $0) })
-      
-            os_log("Returning %d unfinished tasks", log: log, type: .info, jsonStrings.count)
-            result(jsonStrings)
+                os_log("Returning %d unfinished tasks", log: log, type: .info, jsonStrings.count)
+                result(jsonStrings)
+            } else {
+                result(nil)
+            }
         })
     }
     
