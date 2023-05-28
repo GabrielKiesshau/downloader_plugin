@@ -49,27 +49,17 @@ public class Downloader: NSObject, FlutterPlugin, URLSessionDelegate, URLSession
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         switch call.method {
         case "reset":
-            _Concurrency.Task {
-                await methodReset(call: call, result: result)
-            }
+            methodReset(call: call, result: result)
         case "enqueue":
             methodEnqueue(call: call, result: result)
         case "allTasks":
-            _Concurrency.Task {
-                await methodAllTasks(call: call, result: result)
-            }
+            methodAllTasks(call: call, result: result)
         case "cancelTasksWithIds":
-            _Concurrency.Task {
-                await methodCancelTasksWithIds(call: call, result: result)
-            }
+            methodCancelTasksWithIds(call: call, result: result)
         case "taskForId":
-            _Concurrency.Task {
-                await methodTaskForId(call: call, result: result)
-            }
+            methodTaskForId(call: call, result: result)
         case "pause":
-            _Concurrency.Task {
-                await methodPause(call: call, result: result)
-            }
+            methodPause(call: call, result: result)
         case "popResumeData":
             methodPopResumeData(result: result)
         case "popStatusUpdates":
