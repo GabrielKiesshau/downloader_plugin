@@ -207,22 +207,25 @@ public class Downloader: NSObject, FlutterPlugin, URLSessionDelegate, URLSession
     
     /// Returns a list with all tasks in progress, as a list of JSON strings
     private func methodAllTasks(call: FlutterMethodCall, result: @escaping FlutterResult) {
-        let group = call.arguments as! String
-        Downloader.urlSession = Downloader.urlSession ?? createUrlSession()
+        os_log("methodAllTasks", log: log, type: .info)
+        result(false)
 
-        Downloader.urlSession?.getAllTasks(completionHandler: { urlSessionTasks in
-            guard let tasks = urlSessionTasks else {
-                result(nil)
-                return
-            }
+        // let group = call.arguments as! String
+        // Downloader.urlSession = Downloader.urlSession ?? createUrlSession()
 
-            let filteredTasks = tasks.filter({ $0.state == .running || $0.state == .suspended })
-            let filteredTasksInGroup = filteredTasks.compactMap({ getTaskFrom(urlSessionTask: $0) }).filter({ $0.group == group })
-            let jsonStrings = filteredTasksInGroup.compactMap({ jsonStringFor(task: $0) })
+        // Downloader.urlSession?.getAllTasks(completionHandler: { urlSessionTasks in
+        //     guard let tasks = urlSessionTasks else {
+        //         result(nil)
+        //         return
+        //     }
 
-            os_log("Returning %d unfinished tasks", log: log, type: .info, jsonStrings.count)
-            result(jsonStrings)
-        })
+        //     let filteredTasks = tasks.filter({ $0.state == .running || $0.state == .suspended })
+        //     let filteredTasksInGroup = filteredTasks.compactMap({ getTaskFrom(urlSessionTask: $0) }).filter({ $0.group == group })
+        //     let jsonStrings = filteredTasksInGroup.compactMap({ jsonStringFor(task: $0) })
+
+        //     os_log("Returning %d unfinished tasks", log: log, type: .info, jsonStrings.count)
+        //     result(jsonStrings)
+        // })
     }
     
     /// Cancels ongoing tasks whose taskId is in the list provided with this call
@@ -636,7 +639,6 @@ public class Downloader: NSObject, FlutterPlugin, URLSessionDelegate, URLSession
             switch response.actionIdentifier {
             case "pause_action":
                 os_log("pause_action", log: log, type: .info)
-                result(false)
                 // getUrlSessionTaskWithId(taskId: task.taskId) { urlSessionTask in
                 //     if let downloadTask = urlSessionTask as? URLSessionDownloadTask,
                 //     let resumeData = downloadTask.cancel(byProducingResumeData: { resumeData in
