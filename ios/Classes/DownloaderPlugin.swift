@@ -229,24 +229,27 @@ public class Downloader: NSObject, FlutterPlugin, URLSessionDelegate, URLSession
     ///
     /// Returns true if all cancellations were successful
     private func methodCancelTasksWithIds(call: FlutterMethodCall, result: @escaping FlutterResult) {
-        let taskIds = call.arguments as! [String]
+        os_log("methodCancelTasksWithIds", log: log, type: .info)
+        result(false)
 
-        os_log("Canceling taskIds %@", log: log, type: .info, taskIds)
+        // let taskIds = call.arguments as! [String]
 
-        getAllUrlSessionTasks(completion: { urlSessionTasks in
-            guard let tasks = urlSessionTasks else {
-                result(false)
-                return
-            }
+        // os_log("Canceling taskIds %@", log: log, type: .info, taskIds)
 
-            let tasksToCancel =  tasks.filter({ urlSessionTask in
-                guard let task = getTaskFrom(urlSessionTask: urlSessionTask) else { return false }
-                return taskIds.contains(task.taskId)
-            })
+        // getAllUrlSessionTasks(completion: { urlSessionTasks in
+        //     guard let tasks = urlSessionTasks else {
+        //         result(false)
+        //         return
+        //     }
 
-            tasksToCancel.forEach({ $0.cancel() })
-            result(true)
-        })
+        //     let tasksToCancel =  tasks.filter({ urlSessionTask in
+        //         guard let task = getTaskFrom(urlSessionTask: urlSessionTask) else { return false }
+        //         return taskIds.contains(task.taskId)
+        //     })
+
+        //     tasksToCancel.forEach({ $0.cancel() })
+        //     result(true)
+        // })
     }
     
     /// Returns Task for this taskId, or nil
@@ -268,24 +271,26 @@ public class Downloader: NSObject, FlutterPlugin, URLSessionDelegate, URLSession
     ///
     /// If pause is not successful, task will be canceled (attempted)
     private func methodPause(call: FlutterMethodCall, result: @escaping FlutterResult) {
-        let taskId = call.arguments as! String
-        Downloader.urlSession = Downloader.urlSession ?? createUrlSession()
+        os_log("methodPause", log: log, type: .info)
+        result(false)
+        // let taskId = call.arguments as! String
+        // Downloader.urlSession = Downloader.urlSession ?? createUrlSession()
 
-        getUrlSessionTaskWithId(taskId: taskId, completion: { urlSessionTask in
-            if let downloadTask = urlSessionTask as? URLSessionDownloadTask,
-                let task = getTaskFrom(urlSessionTask: downloadTask),
-                let resumeData = downloadTask.cancel(byProducingResumeData: { resumeData in
-                    let processResult = processResumeData(task: task, resumeData: resumeData)
-                    result(processResult)
-                }) {
-                // Resume data is available immediately
-                let processResult = processResumeData(task: task, resumeData: resumeData)
-                result(processResult)
-            } else {
-                os_log("Could not pause task - likely not enqueued yet", log: log, type: .info)
-                result(false)
-            }
-        })
+        // getUrlSessionTaskWithId(taskId: taskId, completion: { urlSessionTask in
+        //     if let downloadTask = urlSessionTask as? URLSessionDownloadTask,
+        //         let task = getTaskFrom(urlSessionTask: downloadTask),
+        //         let resumeData = downloadTask.cancel(byProducingResumeData: { resumeData in
+        //             let processResult = processResumeData(task: task, resumeData: resumeData)
+        //             result(processResult)
+        //         }) {
+        //         // Resume data is available immediately
+        //         let processResult = processResumeData(task: task, resumeData: resumeData)
+        //         result(processResult)
+        //     } else {
+        //         os_log("Could not pause task - likely not enqueued yet", log: log, type: .info)
+        //         result(false)
+        //     }
+        // })
     }
     
     /// Returns a JSON String of a map of [ResumeData], keyed by taskId, that has been stored
@@ -630,17 +635,19 @@ public class Downloader: NSObject, FlutterPlugin, URLSessionDelegate, URLSession
             }
             switch response.actionIdentifier {
             case "pause_action":
-                getUrlSessionTaskWithId(taskId: task.taskId) { urlSessionTask in
-                    if let downloadTask = urlSessionTask as? URLSessionDownloadTask,
-                    let resumeData = downloadTask.cancel(byProducingResumeData: { resumeData in
-                        let _ = processResumeData(task: task, resumeData: resumeData)
-                    }) {
-                        // Resume data is available immediately
-                        let _ = processResumeData(task: task, resumeData: resumeData)
-                    } else {
-                        os_log("Could not pause task in response to notification action", log: log, type: .info)
-                    }
-                }
+                os_log("pause_action", log: log, type: .info)
+                result(false)
+                // getUrlSessionTaskWithId(taskId: task.taskId) { urlSessionTask in
+                //     if let downloadTask = urlSessionTask as? URLSessionDownloadTask,
+                //     let resumeData = downloadTask.cancel(byProducingResumeData: { resumeData in
+                //         let _ = processResumeData(task: task, resumeData: resumeData)
+                //     }) {
+                //         // Resume data is available immediately
+                //         let _ = processResumeData(task: task, resumeData: resumeData)
+                //     } else {
+                //         os_log("Could not pause task in response to notification action", log: log, type: .info)
+                //     }
+                // }
             case "cancel_action":
                 getAllUrlSessionTasks { urlSessionTasks in
                     let urlSessionTaskToCancel = urlSessionTasks.first(where: {
