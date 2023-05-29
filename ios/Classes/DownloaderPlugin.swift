@@ -349,19 +349,12 @@ public class Downloader: NSObject, FlutterPlugin, URLSessionDelegate, URLSession
     private func getAllTasks(completion: @escaping ([Task]) -> Void) {
         Downloader.urlSession = Downloader.urlSession ?? createUrlSession()
         Downloader.urlSession?.getAllTasks(completionHandler: { urlSessionTasks in
-            // if (urlSessionTasks == nil) {
-            //     completion([])
-            //     return
-            // }
-            // let tasks = urlSessionTasks?.compactMap { getTaskFrom(urlSessionTask: $0) }
-            // completion(tasks)
-            guard urlSessionTasks == nil {
-                let tasks = urlSessionTasks.compactMap { getTaskFrom(urlSessionTask: $0) }
-                completion(tasks)
-                
+            if (urlSessionTasks == nil) {
+                completion([])
                 return
             }
-            completion([])
+            let tasks = urlSessionTasks?.compactMap { getTaskFrom(urlSessionTask: $0) }
+            completion(tasks)
         })
     }
     
